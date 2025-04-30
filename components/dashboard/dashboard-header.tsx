@@ -32,14 +32,20 @@ export function DashboardHeader() {
             What's At Stake
           </span>
           <span className="text-xs text-muted-foreground">
-            SOL ${solPrice.toFixed(2)}
+            SOL ${solPrice?.toFixed(2) || '0.00'}
             <span
               className={`ml-1 ${
-                solPriceChange >= 0 ? 'text-green-500' : 'text-red-500'
+                solPriceChange
+                  ? solPriceChange > 0
+                    ? 'text-green-500'
+                    : solPriceChange < 0
+                    ? 'text-red-500'
+                    : 'text-gray-500'
+                  : ''
               }`}
             >
-              {solPriceChange >= 0 ? '+' : ''}
-              {solPriceChange.toFixed(2)}%
+              {solPriceChange && solPriceChange >= 0 ? '+' : ''}
+              {solPriceChange?.toFixed(2) || '0.00'}%
             </span>
           </span>
         </div>

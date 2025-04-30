@@ -6,26 +6,46 @@
 import type {
   APYHistory,
   GeographicDistribution,
+  NetworkStat,
   StakeDistribution,
   Validator,
 } from '@/lib/types';
 import { Cluster } from '@solana/web3.js';
+import { RateLimitError } from '../errors/api-errors';
 
 // Base URL for validators.app API
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_VALIDATORS_APP_API_URL ||
-  'https://www.validators.app/api/v1';
+  process.env.VALIDATORS_APP_API_URL || 'https://www.validators.app/api/v1';
 
 // API key for authentication
-const API_KEY = process.env.NEXT_PUBLIC_VALIDATORS_APP_API_KEY;
+const API_KEY = process.env.VALIDATORS_APP_API_KEY;
 if (!API_KEY) {
   throw new Error(
     'API key for validators.app is not set in environment variables.'
   );
 }
 
-// Cache time in milliseconds (5 minutes)
-const CACHE_TIME = 5 * 60 * 1000;
+// Adjust cache times based on data update frequency
+const CACHE_TIMES = {
+  validators: 5 * 60 * 1000, // 5 minutes
+  networkStats: 5 * 60 * 1000, // 5 minutes
+  epochInfo: 15 * 60 * 1000, // 15 minutes
+  geoDistribution: 60 * 60 * 1000, // 1 hour - changes very rarely
+  apyHistory: 60 * 60 * 1000, // 1 hour - historical data
+} as const;
+
+const DATA_CENTER_LOCATIONS: Record<string, { lat: number; lng: number }> = {
+  'aws us-east': { lat: 37.7749, lng: -122.4194 },
+  'aws us-west': { lat: 47.6062, lng: -122.3321 },
+  'aws eu': { lat: 50.1109, lng: 8.6821 },
+  'google cloud': { lat: 51.5074, lng: -0.1278 },
+  'microsoft azure': { lat: 52.3676, lng: 4.9041 },
+  hetzner: { lat: 49.4542, lng: 11.0767 },
+  ovh: { lat: 48.8566, lng: 2.3522 },
+  'digital ocean': { lat: 40.7128, lng: -74.006 },
+  linode: { lat: 39.9526, lng: -75.1652 },
+  unknown: { lat: 0, lng: 0 },
+};
 
 // Cache for API responses
 type CacheEntry = {
@@ -44,21 +64,20 @@ async function getCachedOrFetch<T>(
 ): Promise<T> {
   const now = Date.now();
   const cached = cache[key];
+  const cacheTime =
+    CACHE_TIMES[key.split('-')[0] as keyof typeof CACHE_TIMES] ||
+    CACHE_TIMES.validators;
 
-  if (cached && now - cached.timestamp < CACHE_TIME) {
-    console.log(`Using cached data for ${key}`);
+  if (cached && now - cached.timestamp < cacheTime) {
     return cached.data as T;
   }
 
-  console.log(`Fetching fresh data for ${key}`);
   try {
     const data = await fetchFn();
     cache[key] = { timestamp: now, data };
     return data;
   } catch (error) {
-    console.error(`Error fetching data for ${key}:`, error);
-    if (cached) {
-      console.log(`Using stale cached data for ${key}`);
+    if (error instanceof RateLimitError && cached) {
       return cached.data as T;
     }
     throw error;
@@ -66,40 +85,94 @@ async function getCachedOrFetch<T>(
 }
 
 /**
- * Make an authenticated request to validators.app API
+ * Rate limit tracking
  */
-async function apiRequest<T>(
+const rateLimits = {
+  lastReset: Date.now(),
+  requestCount: 0,
+  queue: [] as Array<() => Promise<void>>,
+  processing: false,
+};
+
+// Process queued requests
+async function processQueue() {
+  if (rateLimits.processing) return;
+  rateLimits.processing = true;
+
+  while (rateLimits.queue.length > 0) {
+    const now = Date.now();
+    const timeSinceReset = now - rateLimits.lastReset;
+
+    // Reset counter if 5 minutes have passed
+    if (timeSinceReset >= 300000) {
+      rateLimits.requestCount = 0;
+      rateLimits.lastReset = now;
+    }
+
+    // Check if we can make more requests
+    if (rateLimits.requestCount >= 15) {
+      // Use 15 to be safe
+      const waitTime = 300000 - timeSinceReset;
+      await new Promise((resolve) => setTimeout(resolve, waitTime));
+      continue;
+    }
+
+    const request = rateLimits.queue.shift();
+    if (request) {
+      try {
+        await request();
+      } catch (error) {
+        console.error('Queue processing error:', error);
+      }
+      rateLimits.requestCount++;
+    }
+  }
+
+  rateLimits.processing = false;
+}
+
+/**
+ * Queue an API request with rate limiting
+ */
+async function queueApiRequest<T>(
   endpoint: string,
   params: Record<string, string> = {}
 ): Promise<T> {
-  const url = new URL(`${API_BASE_URL}${endpoint}`);
+  return new Promise((resolve, reject) => {
+    const request = async () => {
+      const requestUrl = `${API_BASE_URL}${endpoint}${
+        params ? `?${new URLSearchParams(params).toString()}` : ''
+      }`;
 
-  // Add query parameters
-  Object.entries(params).forEach(([key, value]) => {
-    url.searchParams.append(key, value);
+      try {
+        const response = await fetch(requestUrl, {
+          headers: {
+            Token: `${API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.status === 429) {
+          const retryAfter = parseInt(
+            response.headers.get('retry-after') || '300',
+            10
+          );
+          throw new RateLimitError(retryAfter);
+        }
+
+        if (!response.ok) {
+          throw new Error(`API request failed: ${response.statusText}`);
+        }
+
+        resolve(await response.json());
+      } catch (error) {
+        reject(error);
+      }
+    };
+
+    rateLimits.queue.push(request);
+    processQueue();
   });
-
-  try {
-    const response = await fetch(url.toString(), {
-      headers: {
-        Token: `${API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(
-        `API request failed with status ${
-          response.status
-        }: ${await response.text()}`
-      );
-    }
-
-    return (await response.json()) as T;
-  } catch (error) {
-    console.error(`Error making request to ${endpoint}:`, error);
-    throw error;
-  }
 }
 
 /**
@@ -123,7 +196,7 @@ type ValidatorApiResponse = {
   skipped_slot_percent: string;
   software_version: string;
   stake_pools_list: string[];
-  // ... other fields as needed
+  total_validators?: number;
 };
 
 type EpochApiResponse = {
@@ -175,78 +248,99 @@ function convertNetwork(network: Cluster): string {
 export async function getValidators(network: Cluster): Promise<Validator[]> {
   const validatorsNetwork = convertNetwork(network);
   return getCachedOrFetch(`validators-${network}`, async () => {
-    const validators: ValidatorApiResponse[] = [];
-    let page = 1;
-    let hasMore = true;
+    try {
+      const validators: ValidatorApiResponse[] = [];
+      const pageSize = 100;
+      const maxParallel = 3;
 
-    while (hasMore) {
-      const response = await apiRequest<ValidatorApiResponse[]>(
+      // First request to get total count
+      const firstPage = await queueApiRequest<ValidatorApiResponse[]>(
         `/validators/${validatorsNetwork}.json`,
-        {
-          page: page.toString(),
-          limit: '100',
-        }
+        { page: '1', limit: pageSize.toString() }
       );
+      validators.push(...firstPage);
 
-      if (response.length === 0) {
-        hasMore = false;
-      } else {
-        validators.push(...response);
-        page++;
+      // Calculate total validators from first page header or use array length
+      const totalValidators =
+        firstPage[0]?.total_validators ?? firstPage.length;
+      const totalPages = Math.ceil(totalValidators / pageSize);
+
+      // Batch remaining requests
+      for (let page = 2; page <= totalPages; page += maxParallel) {
+        const batch = Array.from(
+          { length: Math.min(maxParallel, totalPages - page + 1) },
+          (_, i) =>
+            queueApiRequest<ValidatorApiResponse[]>(
+              `/validators/${validatorsNetwork}.json`,
+              { page: (page + i).toString(), limit: pageSize.toString() }
+            )
+        );
+
+        const results = await Promise.all(batch);
+        results.forEach((result) => validators.push(...result));
       }
+
+      // Create a map to deduplicate validators by identity
+      const validatorMap = new Map<string, ValidatorApiResponse>();
+      validators.forEach((validator) => {
+        const existing = validatorMap.get(validator.account);
+        if (!existing || validator.active_stake > existing.active_stake) {
+          validatorMap.set(validator.account, validator);
+        }
+      });
+
+      // Transform deduplicated validators
+      return Array.from(validatorMap.values()).map((validator) => ({
+        name:
+          validator.name ||
+          `${validator.account.slice(0, 6)}...${validator.account.slice(-6)}`,
+        identity: validator.account,
+        votePubkey: validator.vote_account,
+        activatedStake: validator.active_stake / 1_000_000_000,
+        commission: validator.commission,
+        apy: calculateAPY(validator.commission),
+        skippedSlots: parseFloat(validator.skipped_slot_percent || '0'),
+        delinquent: validator.delinquent,
+        score: validator.total_score,
+        stakePercentage: 0,
+        votingPower: 0,
+        voteDistance: 0,
+        commissionChange: false,
+        dataCenter: validator.data_center_host || 'Unknown',
+        uptime: 100 - parseFloat(validator.skipped_slot_percent || '0'),
+        version: validator.software_version || 'Unknown',
+        lastVote: 'Unknown',
+        rootSlot: 'Unknown',
+        updatedAt: new Date().toLocaleTimeString(),
+        rewards: {
+          daily: 0,
+          epoch: 0,
+          per1000: 0,
+        },
+        stakeAccounts: {
+          count: 0,
+          averageSize: 0,
+          largest: 0,
+          superminority: false,
+        },
+      }));
+    } catch (error) {
+      if (error instanceof RateLimitError) {
+        const cached = cache[`validators-${network}`];
+        if (cached) {
+          console.log(`Using stale cache due to rate limit for ${network}`);
+          return cached.data;
+        }
+      }
+      throw error;
     }
-
-    // Create a map to deduplicate validators by identity
-    const validatorMap = new Map<string, ValidatorApiResponse>();
-    validators.forEach((validator) => {
-      const existing = validatorMap.get(validator.account);
-      if (!existing || validator.active_stake > existing.active_stake) {
-        validatorMap.set(validator.account, validator);
-      }
-    });
-
-    // Transform deduplicated validators
-    return Array.from(validatorMap.values()).map((validator) => ({
-      name:
-        validator.name ||
-        `${validator.account.slice(0, 6)}...${validator.account.slice(-6)}`,
-      identity: validator.account,
-      votePubkey: validator.vote_account,
-      activatedStake: validator.active_stake / 1_000_000_000,
-      commission: validator.commission,
-      apy: calculateAPY(validator.commission),
-      skippedSlots: parseFloat(validator.skipped_slot_percent || '0'),
-      delinquent: validator.delinquent,
-      score: validator.total_score,
-      stakePercentage: 0,
-      votingPower: 0,
-      voteDistance: 0,
-      commissionChange: false,
-      dataCenter: validator.data_center_host || 'Unknown',
-      uptime: 100 - parseFloat(validator.skipped_slot_percent || '0'),
-      version: validator.software_version || 'Unknown',
-      lastVote: 'Unknown',
-      rootSlot: 'Unknown',
-      updatedAt: new Date().toLocaleTimeString(),
-      rewards: {
-        daily: 0,
-        epoch: 0,
-        per1000: 0,
-      },
-      stakeAccounts: {
-        count: 0,
-        averageSize: 0,
-        largest: 0,
-        superminority: false,
-      },
-    }));
   });
 }
 
 /**
  * Get network statistics
  */
-export async function getNetworkStats(network: Cluster) {
+export async function getNetworkStats(network: Cluster): Promise<NetworkStat> {
   return getCachedOrFetch(`network-stats-${network}`, async () => {
     // Get validators first to calculate stats
     const validators = await getValidators(network);
@@ -255,7 +349,7 @@ export async function getNetworkStats(network: Cluster) {
     const delinquentValidators = validators.length - activeValidators;
 
     // Get epoch data
-    const epochData = await apiRequest<EpochApiResponse>(
+    const epochData = await queueApiRequest<EpochApiResponse>(
       `/epochs/${convertNetwork(network)}.json`
     );
     const latestEpoch = epochData.epochs[0];
@@ -310,14 +404,17 @@ export async function getGeographicDistribution(
 
     // Group validators by data center location
     validators.forEach((validator) => {
-      // Skip if no location data
-      if (!validator.dataCenter) return;
+      const dcKey = validator.dataCenter.toLowerCase();
+      const location =
+        Object.entries(DATA_CENTER_LOCATIONS).find(([key]) =>
+          dcKey.includes(key)
+        )?.[1] || DATA_CENTER_LOCATIONS.unknown;
 
       const key = validator.dataCenter.toLowerCase();
       const entry = distribution.get(key) || {
         country: validator.dataCenter,
-        latitude: 0, // Would need a mapping of data centers to coordinates
-        longitude: 0,
+        latitude: location.lat,
+        longitude: location.lng,
         count: 0,
         stake: 0,
         delinquent: 0,
@@ -330,72 +427,12 @@ export async function getGeographicDistribution(
       distribution.set(key, entry);
     });
 
-    return Array.from(distribution.values()).map((entry) => ({
-      country: entry.country,
-      latitude: entry.latitude,
-      longitude: entry.longitude,
-      count: entry.count,
-      stake: entry.stake,
-      delinquent: entry.delinquent > 0,
-    }));
-  });
-}
-
-/**
- * Get APY history from validators.app
- * Since historical data isn't available, we'll simulate it based on current APY
- */
-export async function getAPYHistory(network: Cluster): Promise<APYHistory[]> {
-  return getCachedOrFetch(`apy-history-${network}`, async () => {
-    const validators = await getValidators(network);
-    const currentAPY =
-      validators.reduce((sum, v) => sum + v.apy, 0) / validators.length;
-
-    // Generate 30 days of history with small variations
-    const days = 30;
-    const result: APYHistory[] = [];
-
-    for (let i = days; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-
-      // Create a realistic APY trend with small fluctuations
-      const dayFactor = i / days; // 0 to 1
-      const trendFactor = Math.sin(dayFactor * Math.PI) * 0.5; // Sinusoidal trend
-      const randomFactor = Math.random() * 0.4 - 0.2; // Random noise
-
-      const apy = currentAPY + trendFactor + randomFactor;
-
-      result.push({
-        date: date.toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-        }),
-        averageAPY: Number(apy.toFixed(2)),
-      });
-    }
-
-    return result;
-  });
-}
-
-/**
- * Get stake distribution data
- */
-export async function getStakeDistribution(
-  network: Cluster
-): Promise<StakeDistribution[]> {
-  return getCachedOrFetch('stake-distribution', async () => {
-    const validators = await getValidators(network);
-
-    return validators
-      .sort((a, b) => b.activatedStake - a.activatedStake)
-      .slice(0, 25)
-      .map((validator) => ({
-        name: validator.name,
-        stakeAmount: validator.activatedStake,
-        percentage: validator.stakePercentage,
-      }));
+    return Array.from(distribution.values())
+      .map((entry) => ({
+        ...entry,
+        delinquent: entry.delinquent > 0,
+      }))
+      .filter((entry) => entry.latitude !== 0 && entry.longitude !== 0);
   });
 }
 
@@ -438,4 +475,60 @@ export function calculateEpochRewards(stake: number, apy: number): number {
  */
 export function calculateRewardsPer1000(apy: number): number {
   return Number(((1000 * apy) / 365).toFixed(2));
+}
+
+/**
+ * Get APY history from actual epoch reward data
+ */
+export async function getAPYHistory(network: Cluster): Promise<APYHistory[]> {
+  return getCachedOrFetch(`apy-history-${network}`, async () => {
+    // Fetch last 30 epochs of data
+    const epochData = await queueApiRequest<EpochApiResponse>(
+      `/epochs/${convertNetwork(network)}.json`,
+      { limit: '30' }
+    );
+
+    // Calculate APY for each epoch
+    return epochData.epochs
+      .map((epoch) => {
+        const annualizedRewards =
+          ((epoch.total_rewards / epoch.total_active_stake) *
+            (365 * 24 * 60 * 60)) /
+          (epoch.slots_in_epoch * 0.4); // 0.4s per slot
+        const date = new Date();
+        date.setDate(
+          date.getDate() - (epochData.epochs[0].epoch - epoch.epoch) * 2
+        ); // Approximate 2 days per epoch
+
+        return {
+          date: date.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+          }),
+          averageAPY: Number((annualizedRewards * 100).toFixed(2)),
+        };
+      })
+      .reverse();
+  });
+}
+
+/**
+ * Get stake distribution data
+ */
+export async function getStakeDistribution(
+  network: Cluster
+): Promise<StakeDistribution[]> {
+  return getCachedOrFetch(`stake-distribution-${network}`, async () => {
+    const validators = await getValidators(network);
+    const totalStake = validators.reduce((sum, v) => sum + v.activatedStake, 0);
+
+    return validators
+      .sort((a, b) => b.activatedStake - a.activatedStake)
+      .slice(0, 25)
+      .map((validator) => ({
+        name: validator.name,
+        stakeAmount: validator.activatedStake,
+        percentage: (validator.activatedStake / totalStake) * 100,
+      }));
+  });
 }

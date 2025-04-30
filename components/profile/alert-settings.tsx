@@ -1,6 +1,6 @@
-"use client"
+'use client';
 
-import { Button } from "@/components/ui/button"
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -8,72 +8,84 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { useProfile, type AlertSetting } from "./profile-provider"
-import { useState } from "react"
-import { Bell, Plus, Trash2 } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { useProfile, type AlertSetting } from './profile-provider';
+import { useState } from 'react';
+import { Bell, Plus, Trash2 } from 'lucide-react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 export function AlertSettings() {
-  const { profile, addAlert, removeAlert, toggleAlert } = useProfile()
-  const [open, setOpen] = useState(false)
-  const [newAlert, setNewAlert] = useState({
-    type: "validator",
-    condition: "delinquent",
-    value: "",
+  const { profile, addAlert, removeAlert, toggleAlert } = useProfile();
+  const [open, setOpen] = useState(false);
+  const [newAlert, setNewAlert] = useState<Omit<AlertSetting, 'id'>>({
+    type: 'validator',
+    condition: 'delinquent',
+    value: '',
     enabled: true,
-  })
+  });
 
   const handleAddAlert = () => {
-    addAlert(newAlert)
+    addAlert(newAlert);
     setNewAlert({
-      type: "validator",
-      condition: "delinquent",
-      value: "",
+      type: 'validator',
+      condition: 'delinquent',
+      value: '',
       enabled: true,
-    })
-  }
+    });
+  };
 
   const getAlertDescription = (alert: AlertSetting) => {
     switch (alert.type) {
-      case "validator":
+      case 'validator':
         switch (alert.condition) {
-          case "delinquent":
-            return "Alert when validator becomes delinquent"
-          case "commission_change":
-            return "Alert when validator changes commission"
-          case "score_below":
-            return `Alert when validator score falls below ${alert.value}`
+          case 'delinquent':
+            return 'Alert when validator becomes delinquent';
+          case 'commission_change':
+            return 'Alert when validator changes commission';
+          case 'score_below':
+            return `Alert when validator score falls below ${alert.value}`;
           default:
-            return "Validator alert"
+            return 'Validator alert';
         }
-      case "network":
+      case 'network':
         switch (alert.condition) {
-          case "delinquency_above":
-            return `Alert when network delinquency rate exceeds ${alert.value}%`
-          case "stake_concentration":
-            return "Alert when stake becomes too concentrated"
+          case 'delinquency_above':
+            return `Alert when network delinquency rate exceeds ${alert.value}%`;
+          case 'stake_concentration':
+            return 'Alert when stake becomes too concentrated';
           default:
-            return "Network alert"
+            return 'Network alert';
         }
-      case "stake":
+      case 'stake':
         switch (alert.condition) {
-          case "apy_below":
-            return `Alert when APY falls below ${alert.value}%`
-          case "rewards_ready":
-            return "Alert when staking rewards are ready to claim"
+          case 'apy_below':
+            return `Alert when APY falls below ${alert.value}%`;
+          case 'rewards_ready':
+            return 'Alert when staking rewards are ready to claim';
           default:
-            return "Stake alert"
+            return 'Stake alert';
         }
       default:
-        return "Custom alert"
+        return 'Custom alert';
     }
-  }
+  };
 
   return (
     <>
@@ -91,7 +103,10 @@ export function AlertSettings() {
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Alert Settings</DialogTitle>
-            <DialogDescription>Set up alerts for important events in the Solana staking ecosystem.</DialogDescription>
+            <DialogDescription>
+              Set up alerts for important events in the Solana staking
+              ecosystem.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
@@ -105,18 +120,30 @@ export function AlertSettings() {
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-sm">
-                        {alert.type.charAt(0).toUpperCase() + alert.type.slice(1)} Alert
+                        {alert.type.charAt(0).toUpperCase() +
+                          alert.type.slice(1)}{' '}
+                        Alert
                       </CardTitle>
-                      <Switch checked={alert.enabled} onCheckedChange={() => toggleAlert(alert.id)} />
+                      <Switch
+                        checked={alert.enabled}
+                        onCheckedChange={() => toggleAlert(alert.id)}
+                      />
                     </div>
-                    <CardDescription>{getAlertDescription(alert)}</CardDescription>
+                    <CardDescription>
+                      {getAlertDescription(alert)}
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="pb-2">
                     <div className="flex justify-between items-center">
                       <Badge variant="outline" className="capitalize">
-                        {alert.condition.replace("_", " ")}
+                        {alert.condition.replace('_', ' ')}
                       </Badge>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => removeAlert(alert.id)}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={() => removeAlert(alert.id)}
+                      >
                         <Trash2 className="h-4 w-4" />
                         <span className="sr-only">Remove</span>
                       </Button>
@@ -137,7 +164,13 @@ export function AlertSettings() {
                       <Label htmlFor="alert-type">Alert Type</Label>
                       <Select
                         value={newAlert.type}
-                        onValueChange={(value) => setNewAlert({ ...newAlert, type: value as any, condition: "" })}
+                        onValueChange={(value) =>
+                          setNewAlert({
+                            ...newAlert,
+                            type: value as any,
+                            condition: '',
+                          })
+                        }
                       >
                         <SelectTrigger id="alert-type">
                           <SelectValue placeholder="Select type" />
@@ -154,29 +187,45 @@ export function AlertSettings() {
                       <Label htmlFor="alert-condition">Condition</Label>
                       <Select
                         value={newAlert.condition}
-                        onValueChange={(value) => setNewAlert({ ...newAlert, condition: value })}
+                        onValueChange={(value) =>
+                          setNewAlert({ ...newAlert, condition: value })
+                        }
                       >
                         <SelectTrigger id="alert-condition">
                           <SelectValue placeholder="Select condition" />
                         </SelectTrigger>
                         <SelectContent>
-                          {newAlert.type === "validator" && (
+                          {newAlert.type === 'validator' && (
                             <>
-                              <SelectItem value="delinquent">Becomes Delinquent</SelectItem>
-                              <SelectItem value="commission_change">Commission Change</SelectItem>
-                              <SelectItem value="score_below">Score Below Threshold</SelectItem>
+                              <SelectItem value="delinquent">
+                                Becomes Delinquent
+                              </SelectItem>
+                              <SelectItem value="commission_change">
+                                Commission Change
+                              </SelectItem>
+                              <SelectItem value="score_below">
+                                Score Below Threshold
+                              </SelectItem>
                             </>
                           )}
-                          {newAlert.type === "network" && (
+                          {newAlert.type === 'network' && (
                             <>
-                              <SelectItem value="delinquency_above">High Delinquency Rate</SelectItem>
-                              <SelectItem value="stake_concentration">Stake Concentration</SelectItem>
+                              <SelectItem value="delinquency_above">
+                                High Delinquency Rate
+                              </SelectItem>
+                              <SelectItem value="stake_concentration">
+                                Stake Concentration
+                              </SelectItem>
                             </>
                           )}
-                          {newAlert.type === "stake" && (
+                          {newAlert.type === 'stake' && (
                             <>
-                              <SelectItem value="apy_below">APY Below Threshold</SelectItem>
-                              <SelectItem value="rewards_ready">Rewards Ready</SelectItem>
+                              <SelectItem value="apy_below">
+                                APY Below Threshold
+                              </SelectItem>
+                              <SelectItem value="rewards_ready">
+                                Rewards Ready
+                              </SelectItem>
                             </>
                           )}
                         </SelectContent>
@@ -184,16 +233,18 @@ export function AlertSettings() {
                     </div>
                   </div>
 
-                  {(newAlert.condition === "score_below" ||
-                    newAlert.condition === "delinquency_above" ||
-                    newAlert.condition === "apy_below") && (
+                  {(newAlert.condition === 'score_below' ||
+                    newAlert.condition === 'delinquency_above' ||
+                    newAlert.condition === 'apy_below') && (
                     <div className="space-y-2">
                       <Label htmlFor="alert-value">Threshold Value</Label>
                       <Input
                         id="alert-value"
                         type="number"
                         value={newAlert.value.toString()}
-                        onChange={(e) => setNewAlert({ ...newAlert, value: e.target.value })}
+                        onChange={(e) =>
+                          setNewAlert({ ...newAlert, value: e.target.value })
+                        }
                         placeholder="Enter threshold value"
                       />
                     </div>
@@ -216,5 +267,5 @@ export function AlertSettings() {
         </DialogContent>
       </Dialog>
     </>
-  )
+  );
 }

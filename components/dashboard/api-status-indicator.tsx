@@ -7,50 +7,30 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { API_BASE_URL } from '@/lib/api/validators-app';
 import { AlertCircle, CheckCircle, Wifi } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 export function ApiStatusIndicator() {
   const [status, setStatus] = useState<
-    'online' | 'degraded' | 'offline' | 'checking'
+    'online' | 'degraded' | 'offline' | 'rate_limited' | 'checking'
   >('checking');
-  const [latency, setLatency] = useState<number | null>(null);
+  const [retryAfter, setRetryAfter] = useState<number | null>(null);
 
   useEffect(() => {
     const checkApiStatus = async () => {
       setStatus('checking');
 
       try {
-        const startTime = performance.now();
+        const response = await fetch('/api/health');
+        const data = await response.json();
 
-        // Try to fetch from validators.app API
-        // In a real implementation, you would use a health check endpoint
-        const response = await fetch(API_BASE_URL + '/ping.json', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            Token: process.env.NEXT_PUBLIC_VALIDATORS_APP_API_KEY || '',
-          },
-          // Short timeout to detect slow responses
-          signal: AbortSignal.timeout(5000),
-        });
-
-        const endTime = performance.now();
-        setLatency(Math.round(endTime - startTime));
-
-        if (response.ok && (await response.json()).answer === 'pong') {
-          setStatus('online');
-        } else {
-          setStatus('degraded');
+        setStatus(data.status);
+        if (data.retryAfter) {
+          setRetryAfter(data.retryAfter);
         }
       } catch (error) {
-        console.error('API status check failed:', error);
-        setStatus(
-          error instanceof DOMException && error.name === 'TimeoutError'
-            ? 'degraded'
-            : 'offline'
-        );
+        console.error('Health check failed:', error);
+        setStatus('offline');
       }
     };
 
@@ -68,8 +48,8 @@ export function ApiStatusIndicator() {
           icon: <CheckCircle className="h-3 w-3 mr-1" />,
           text: 'API Online',
           color: 'bg-green-500/20 text-green-500 border-green-500/30',
-          tooltip: latency
-            ? `API responding in ${latency}ms`
+          tooltip: retryAfter
+            ? `API responding in ${Math.ceil(retryAfter)}ms`
             : 'API is operational',
         };
       case 'degraded':
@@ -77,8 +57,8 @@ export function ApiStatusIndicator() {
           icon: <AlertCircle className="h-3 w-3 mr-1" />,
           text: 'API Degraded',
           color: 'bg-amber-500/20 text-amber-500 border-amber-500/30',
-          tooltip: latency
-            ? `Slow response: ${latency}ms`
+          tooltip: retryAfter
+            ? `Slow response: ${Math.ceil(retryAfter)}ms`
             : 'API performance is degraded',
         };
       case 'offline':
@@ -87,6 +67,17 @@ export function ApiStatusIndicator() {
           text: 'API Offline',
           color: 'bg-red-500/20 text-red-500 border-red-500/30',
           tooltip: 'API is currently unreachable',
+        };
+      case 'rate_limited':
+        return {
+          icon: <AlertCircle className="h-3 w-3 mr-1" />,
+          text: 'API Rate Limited',
+          color: 'bg-amber-500/20 text-amber-500 border-amber-500/30',
+          tooltip: retryAfter
+            ? `Rate limit exceeded. Try again in ${Math.ceil(
+                retryAfter / 60
+              )} minutes`
+            : 'API rate limit exceeded',
         };
       case 'checking':
       default:

@@ -10,7 +10,7 @@ export function LoadingScreen() {
             <div className="absolute inset-6 rounded-full border-4 border-b-blue-500 border-t-transparent border-r-transparent border-l-transparent animate-spin-slower"></div>
           </div>
           <span className="text-3xl font-bold bg-gradient-to-r from-purple-500 via-blue-500 to-indigo-500 bg-clip-text text-transparent">
-            SOLANA STAKING
+            What's At Stake
           </span>
         </div>
       </div>

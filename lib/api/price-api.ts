@@ -5,17 +5,12 @@ type CoinGeckoResponse = {
   };
 };
 
-/**
- * Get current SOL price and 24h change from CoinGecko
- */
 export async function getSolanaPrice(): Promise<{
   price: number;
   change24h: number;
 }> {
   try {
-    const response = await fetch(
-      'https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd&include_24hr_change=true'
-    );
+    const response = await fetch('/api/price');
 
     if (!response.ok) {
       throw new Error('Failed to fetch price data');

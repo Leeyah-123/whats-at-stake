@@ -1,8 +1,6 @@
 'use client';
 
 import { useToast } from '@/hooks/use-toast';
-import { getSolanaPrice } from '@/lib/api/price-api';
-import { createConnection, getStakingData } from '@/lib/solana-api';
 import { DEFAULT_SOL_PRICE, DEFAULT_SOL_PRICE_CHANGE } from '@/lib/constants';
 import type { StakingDataType } from '@/lib/types';
 import type React from 'react';
@@ -23,8 +21,8 @@ type StakingContextType = {
   refreshData: () => Promise<void>;
   lastUpdated: Date | null;
   isRefreshing: boolean;
-  solPrice: number;
-  solPriceChange: number;
+  solPrice?: number;
+  solPriceChange?: number;
 };
 
 const StakingContext = createContext<StakingContextType | undefined>(undefined);
@@ -69,52 +67,59 @@ export function StakingProvider({ children }: { children: React.ReactNode }) {
   const [solPriceChange, setSolPriceChange] = useState(
     DEFAULT_SOL_PRICE_CHANGE
   );
+  const [rateLimitedUntil, setRateLimitedUntil] = useState<Date | null>(null);
 
-  // Load data with error handling
   const loadData = useCallback(
     async (isInitialLoad = false) => {
+      // Only block if we're already refreshing
       if (!isInitialLoad && isRefreshing) return;
-      setIsRefreshing(true);
 
       try {
-        // Fetch price data
-        const priceData = await getSolanaPrice();
+        if (isInitialLoad) {
+          setLoading(true);
+        }
+        setIsRefreshing(true);
+
+        const [stakingResponse, priceResponse] = await Promise.all([
+          fetch('/api/network/stats', {
+            headers: { 'x-network': network },
+          }),
+          fetch('/api/price'),
+        ]);
+
+        if (!stakingResponse.ok || !priceResponse.ok) {
+          throw new Error('Failed to fetch data');
+        }
+
+        const [stakingData, priceData] = await Promise.all([
+          stakingResponse.json(),
+          priceResponse.json(),
+        ]);
+
+        setData(stakingData);
         setSolPrice(priceData.price);
         setSolPriceChange(priceData.change24h);
-
-        // Existing data fetching
-        const connection = createConnection(endpoint);
-        const stakingData = await getStakingData(connection, network);
-        setData(stakingData);
         setError(null);
         setLastUpdated(new Date());
 
         if (!isInitialLoad) {
           toast({
             title: 'Data Updated',
-            description:
-              'The dashboard has been refreshed with the latest data.',
+            description: `Dashboard refreshed`,
           });
         }
       } catch (error) {
-        console.error('Error loading staking data:', error);
-        const errorMessage =
-          error instanceof Error
-            ? error.message
-            : 'Failed to load staking data';
-        setError(errorMessage);
-
-        toast({
-          title: 'Data Loading Error',
-          description: `Could not fetch the latest staking data: ${errorMessage}`,
-          variant: 'destructive',
-        });
+        setError(
+          error instanceof Error ? error.message : 'Failed to load data'
+        );
       } finally {
-        setLoading(false);
         setIsRefreshing(false);
+        if (isInitialLoad) {
+          setLoading(false);
+        }
       }
     },
-    [endpoint, network, isRefreshing, toast]
+    [network, toast]
   );
 
   // Initial data load
@@ -122,7 +127,7 @@ export function StakingProvider({ children }: { children: React.ReactNode }) {
     loadData(true);
   }, [loadData]);
 
-  // Set up auto-refresh if enabled
+  // Auto-refresh setup
   useEffect(() => {
     if (profile.refreshInterval <= 0) return;
 

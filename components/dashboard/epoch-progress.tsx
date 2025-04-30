@@ -1,20 +1,25 @@
-import { Progress } from "@/components/ui/progress"
-import type { EpochInfo } from "@/lib/types"
-import { formatNumber } from "@/lib/utils"
-import { Timer } from "lucide-react"
+import { Progress } from '@/components/ui/progress';
+import type { EpochInfo } from '@/lib/types';
+import { formatNumber } from '@/lib/utils';
+import { Timer } from 'lucide-react';
 
 interface EpochProgressProps {
-  epochInfo: EpochInfo
+  epochInfo?: EpochInfo;
 }
 
 export function EpochProgress({ epochInfo }: EpochProgressProps) {
-  const progressPercentage = Math.round((epochInfo.slotIndex / epochInfo.slotsInEpoch) * 100)
+  if (!epochInfo) {
+    return null;
+  }
+  const progressPercentage = Math.round(
+    (epochInfo.slotIndex / epochInfo.slotsInEpoch) * 100
+  );
 
   // Estimate remaining time
-  const secondsPerSlot = 0.4 // Solana targets ~400ms per slot
-  const remainingSeconds = epochInfo.slotsRemaining * secondsPerSlot
-  const remainingHours = Math.floor(remainingSeconds / 3600)
-  const remainingMinutes = Math.floor((remainingSeconds % 3600) / 60)
+  const secondsPerSlot = 0.4; // Solana targets ~400ms per slot
+  const remainingSeconds = epochInfo.slotsRemaining * secondsPerSlot;
+  const remainingHours = Math.floor(remainingSeconds / 3600);
+  const remainingMinutes = Math.floor((remainingSeconds % 3600) / 60);
 
   return (
     <div className="space-y-2">
@@ -36,5 +41,5 @@ export function EpochProgress({ epochInfo }: EpochProgressProps) {
         <span>{formatNumber(epochInfo.slotsRemaining)} slots left</span>
       </div>
     </div>
-  )
+  );
 }

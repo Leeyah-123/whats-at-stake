@@ -8,10 +8,10 @@ import {
   calculateDailyRewards,
   calculateEpochRewards,
   calculateRewardsPer1000,
-  getAPYHistory as getAPYHistoryData,
+  getAPYHistory,
   getGeographicDistribution as getGeoDistribution,
   getNetworkStats,
-  getStakeDistribution as getStakeDistributionData,
+  getStakeDistribution,
   getValidators as getValidatorsApp,
 } from './api/validators-app';
 import type {
@@ -114,15 +114,6 @@ export async function getEpochInfo(
     };
   }
 }
-
-/**
- * Get validator list with vote accounts
- */
-// export async function getValidators(connection: Connection): Promise<VoteAccountStatus> {
-//   return getCachedOrFetch("validators", async () => {
-//     return await connection.getVoteAccounts()
-//   })
-// }
 
 /**
  * Get total supply of SOL
@@ -476,16 +467,25 @@ export async function getStakingData(
   network: Cluster = 'mainnet-beta'
 ): Promise<StakingDataType> {
   try {
-    // Fetch validators first to get total stake
-    const validators = await getValidatorsApp(network);
-    const totalStake = validators.reduce((sum, v) => sum + v.activatedStake, 0);
+    const [
+      validators,
+      networkStats,
+      geographicDistribution,
+      apyHistory,
+      stakeDistribution,
+    ] = await Promise.all([
+      getValidatorsApp(network),
+      getNetworkStats(network),
+      getGeoDistribution(network),
+      getAPYHistory(network), // Updated to match export name
+      getStakeDistribution(network), // Updated to match export name
+    ]);
 
-    // Update validator percentages
+    // Process data
+    const totalStake = validators.reduce((sum, v) => sum + v.activatedStake, 0);
     validators.forEach((validator) => {
       validator.stakePercentage = (validator.activatedStake / totalStake) * 100;
       validator.votingPower = validator.stakePercentage;
-
-      // Calculate rewards based on stake percentage
       const apy = validator.apy;
       validator.rewards = {
         daily: calculateDailyRewards(validator.activatedStake, apy),
@@ -494,27 +494,18 @@ export async function getStakingData(
       };
     });
 
-    // Fetch other data
-    const networkStats = await getNetworkStats(network);
-    networkStats.totalValidators = validators.length;
-    networkStats.activeValidators = validators.filter(
-      (v) => !v.delinquent
-    ).length;
-
-    const geographicDistribution = await getGeoDistribution(network);
-    const apyHistory = await getAPYHistoryData(network);
-    const stakeDistribution = await getStakeDistributionData(network);
-    const delinquentValidators = validators.filter((v) => v.delinquent).length;
-    const validatorScore = getValidatorScores(validators);
-
     return {
       validators,
-      networkStats,
+      networkStats: {
+        ...networkStats,
+        totalValidators: validators.length,
+        activeValidators: validators.filter((v) => !v.delinquent).length,
+      },
       apyHistory,
       stakeDistribution,
-      delinquentValidators,
+      delinquentValidators: validators.filter((v) => v.delinquent).length,
       geographicDistribution,
-      validatorScore,
+      validatorScore: getValidatorScores(validators),
     };
   } catch (error) {
     console.error('Error fetching staking data:', error);

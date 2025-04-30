@@ -47,14 +47,17 @@ import { EpochProgress } from './epoch-progress';
 import { ErrorAlert } from './error-alert';
 
 export function NetworkStats() {
-  const { data, loading, error, refreshData, isRefreshing } = useStaking();
-  const [activeTab, setActiveTab] = useState('overview');
+  const { data, loading, error, refreshData } = useStaking();
   const [showAdvancedMetrics, setShowAdvancedMetrics] = useState(false);
   const [dataAgeWarning, setDataAgeWarning] = useState(false);
 
   // Check if data is stale (older than 10 minutes)
   useEffect(() => {
-    if (data.networkStats.epochInfo.slot > 0) {
+    if (
+      data.networkStats &&
+      data.networkStats.epochInfo &&
+      data.networkStats.epochInfo.slot > 0
+    ) {
       const lastUpdated = new Date();
       const tenMinutesAgo = new Date(lastUpdated.getTime() - 10 * 60 * 1000);
 
@@ -65,10 +68,12 @@ export function NetworkStats() {
         setDataAgeWarning(false);
       }
     }
-  }, [data.networkStats.epochInfo.slot]);
+  }, [data.networkStats?.epochInfo.slot]);
 
   // Calculate estimated time to epoch end
   const calculateEpochTimeRemaining = () => {
+    if (!data.networkStats?.epochInfo) return 'Unknown';
+
     const { slotsRemaining } = data.networkStats.epochInfo;
     const totalSeconds = (slotsRemaining * SLOT_TIME_MS) / 1000;
     const days = Math.floor(totalSeconds / 86400);
@@ -84,14 +89,11 @@ export function NetworkStats() {
 
   // Calculate network health score based on various metrics
   const calculateNetworkHealth = () => {
-    if (loading || error) return { score: 0, status: 'Unknown' };
+    if (loading || error || !data.networkStats)
+      return { score: 0, status: 'Unknown' };
 
-    const {
-      activeValidators,
-      totalValidators,
-      averageSkippedSlots,
-      stakingRatio,
-    } = data.networkStats;
+    const { totalValidators, averageSkippedSlots, stakingRatio } =
+      data.networkStats;
     const delinquentRatio = data.delinquentValidators / totalValidators;
 
     // Calculate health score (0-100)
@@ -202,7 +204,7 @@ export function NetworkStats() {
               </>
             ) : (
               <>
-                <EpochProgress epochInfo={data.networkStats.epochInfo} />
+                <EpochProgress epochInfo={data.networkStats?.epochInfo} />
 
                 <div className="space-y-2">
                   <h3 className="text-sm font-medium">Network Health</h3>
@@ -248,16 +250,18 @@ export function NetworkStats() {
                   </div>
                   <div className="flex items-center text-xs text-muted-foreground">
                     <Clock className="h-3 w-3 mr-1" />
-                    <span>Epoch {data.networkStats.epochInfo.epoch}</span>
+                    <span>Epoch {data.networkStats?.epochInfo.epoch || 0}</span>
                   </div>
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>Progress</span>
                     <span>
-                      {formatPercentage(
-                        (data.networkStats.epochInfo.slotIndex /
-                          data.networkStats.epochInfo.slotsInEpoch) *
-                          100
-                      )}
+                      {data.networkStats
+                        ? formatPercentage(
+                            (data.networkStats.epochInfo.slotIndex /
+                              data.networkStats.epochInfo.slotsInEpoch) *
+                              100
+                          )
+                        : '0'}
                       %
                     </span>
                   </div>
@@ -282,8 +286,13 @@ export function NetworkStats() {
                     <span>Validators</span>
                   </div>
                   <p className="text-xl font-bold">
-                    {formatNumber(data.networkStats.activeValidators)} /{' '}
-                    {formatNumber(data.networkStats.totalValidators)}
+                    {data.networkStats
+                      ? formatNumber(data.networkStats.activeValidators)
+                      : '0'}{' '}
+                    /{' '}
+                    {data.networkStats
+                      ? formatNumber(data.networkStats.totalValidators)
+                      : '0'}
                   </p>
                   <div className="text-xs text-muted-foreground">
                     {formatNumber(data.delinquentValidators)} delinquent
@@ -296,10 +305,10 @@ export function NetworkStats() {
                     <span>Total Stake</span>
                   </div>
                   <p className="text-xl font-bold">
-                    {formatNumber(data.networkStats.totalStake)} SOL
+                    {formatNumber(data.networkStats?.totalStake || 0)} SOL
                   </p>
                   <div className="text-xs text-muted-foreground">
-                    {formatPercentage(data.networkStats.stakingRatio)}% of
+                    {formatPercentage(data.networkStats?.stakingRatio || 0)}% of
                     supply
                   </div>
                 </div>
@@ -310,7 +319,10 @@ export function NetworkStats() {
                     <span>Skip Rate</span>
                   </div>
                   <p className="text-xl font-bold">
-                    {formatPercentage(data.networkStats.averageSkippedSlots)}%
+                    {data.networkStats
+                      ? formatPercentage(data.networkStats.averageSkippedSlots)
+                      : '0'}
+                    %
                   </p>
                   <div className="text-xs text-muted-foreground">
                     Network average
@@ -323,11 +335,16 @@ export function NetworkStats() {
                     <span>Avg. APY</span>
                   </div>
                   <p className="text-xl font-bold">
-                    {formatPercentage(data.networkStats.averageAPY)}%
+                    {data.networkStats
+                      ? formatPercentage(data.networkStats.averageAPY)
+                      : '0'}
+                    %
                   </p>
                   <div className="text-xs text-muted-foreground">
-                    {formatPercentage(data.networkStats.averageCommission)}%
-                    avg. commission
+                    {data.networkStats
+                      ? formatPercentage(data.networkStats.averageCommission)
+                      : '0'}
+                    % avg. commission
                   </div>
                 </div>
               </>
@@ -364,10 +381,13 @@ export function NetworkStats() {
                         </span>
                         <span className="text-xs">
                           (
-                          {formatPercentage(
-                            (item.count / data.networkStats.totalValidators) *
-                              100
-                          )}
+                          {data.networkStats
+                            ? formatPercentage(
+                                (item.count /
+                                  data.networkStats.totalValidators) *
+                                  100
+                              )
+                            : '0'}
                           %)
                         </span>
                       </div>
@@ -391,10 +411,13 @@ export function NetworkStats() {
                         </span>
                         <span className="text-xs">
                           (
-                          {formatPercentage(
-                            (item.count / data.networkStats.totalValidators) *
-                              100
-                          )}
+                          {data.networkStats
+                            ? formatPercentage(
+                                (item.count /
+                                  data.networkStats.totalValidators) *
+                                  100
+                              )
+                            : '0'}
                           %)
                         </span>
                       </div>
@@ -481,7 +504,9 @@ export function NetworkStats() {
                         Total Validators
                       </span>
                       <span className="text-2xl font-bold">
-                        {formatNumber(data.networkStats.totalValidators)}
+                        {data.networkStats
+                          ? formatNumber(data.networkStats.totalValidators)
+                          : '0'}
                       </span>
                       <span className="text-xs text-green-500 flex items-center">
                         <ArrowUpRight className="h-3 w-3 mr-1" />
@@ -498,14 +523,18 @@ export function NetworkStats() {
                         Active Validators
                       </span>
                       <span className="text-2xl font-bold">
-                        {formatNumber(data.networkStats.activeValidators)}
+                        {data.networkStats
+                          ? formatNumber(data.networkStats.activeValidators)
+                          : '0'}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        {formatPercentage(
-                          (data.networkStats.activeValidators /
-                            data.networkStats.totalValidators) *
-                            100
-                        )}
+                        {data.networkStats
+                          ? formatPercentage(
+                              (data.networkStats.activeValidators /
+                                data.networkStats.totalValidators) *
+                                100
+                            )
+                          : '0'}
                         % of total
                       </span>
                     </div>
@@ -568,9 +597,11 @@ export function NetworkStats() {
                           Average Commission
                         </span>
                         <span className="text-2xl font-bold">
-                          {formatPercentage(
-                            data.networkStats.averageCommission
-                          )}
+                          {data.networkStats
+                            ? formatPercentage(
+                                data.networkStats.averageCommission
+                              )
+                            : '0'}
                           %
                         </span>
                         <span className="text-xs text-muted-foreground">
@@ -652,11 +683,13 @@ export function NetworkStats() {
                         {data.delinquentValidators}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        {formatPercentage(
-                          (data.delinquentValidators /
-                            data.networkStats.totalValidators) *
-                            100
-                        )}
+                        {data.networkStats
+                          ? formatPercentage(
+                              (data.delinquentValidators /
+                                data.networkStats.totalValidators) *
+                                100
+                            )
+                          : '0'}
                         % of total
                       </span>
                     </div>
@@ -670,9 +703,11 @@ export function NetworkStats() {
                         Avg. Skip Rate
                       </span>
                       <span className="text-2xl font-bold">
-                        {formatPercentage(
-                          data.networkStats.averageSkippedSlots
-                        )}
+                        {data.networkStats
+                          ? formatPercentage(
+                              data.networkStats.averageSkippedSlots
+                            )
+                          : '0'}
                         %
                       </span>
                       <span className="text-xs text-muted-foreground">
@@ -748,11 +783,14 @@ export function NetworkStats() {
                                       {location.count}
                                     </span>
                                     <span className="text-xs text-muted-foreground">
-                                      {formatPercentage(
-                                        (location.count /
-                                          data.networkStats.totalValidators) *
-                                          100
-                                      )}
+                                      {data.networkStats
+                                        ? formatPercentage(
+                                            (location.count /
+                                              data.networkStats
+                                                .totalValidators) *
+                                              100
+                                          )
+                                        : '0'}
                                       % of validators
                                     </span>
                                   </div>
@@ -794,11 +832,13 @@ export function NetworkStats() {
                                     {dc.count}
                                   </span>
                                   <span className="text-xs text-muted-foreground">
-                                    {formatPercentage(
-                                      (dc.count /
-                                        data.networkStats.totalValidators) *
-                                        100
-                                    )}
+                                    {data.networkStats
+                                      ? formatPercentage(
+                                          (dc.count /
+                                            data.networkStats.totalValidators) *
+                                            100
+                                        )
+                                      : '0'}
                                     % of validators
                                   </span>
                                 </div>
