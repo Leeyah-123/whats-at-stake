@@ -4,7 +4,12 @@ import { SigninMessage } from './SigninMessage';
 import { User } from '@/lib/db/models/user';
 import dbConnect from '@/lib/db/connect';
 
+if (!process.env.NEXTAUTH_SECRET) {
+  throw new Error('Please define NEXTAUTH_SECRET environment variable');
+}
+
 export const authOptions: AuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET,
   providers: [
     CredentialsProvider({
       name: 'Solana',

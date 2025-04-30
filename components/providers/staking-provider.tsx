@@ -49,25 +49,22 @@ const initialData: StakingDataType = {
   apyHistory: [],
   stakeDistribution: [],
   delinquentValidators: 0,
-  geographicDistribution: [],
   validatorScore: [],
 };
 
 export function StakingProvider({ children }: { children: React.ReactNode }) {
   const { profile } = useProfile();
-  const { endpoint, network } = useWallet();
+  const { network } = useWallet();
   const { toast } = useToast();
   const [data, setData] = useState<StakingDataType>(initialData);
   const [loading, setLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [refreshCount, setRefreshCount] = useState<number>(0);
   const [solPrice, setSolPrice] = useState(DEFAULT_SOL_PRICE);
   const [solPriceChange, setSolPriceChange] = useState(
     DEFAULT_SOL_PRICE_CHANGE
   );
-  const [rateLimitedUntil, setRateLimitedUntil] = useState<Date | null>(null);
 
   const loadData = useCallback(
     async (isInitialLoad = false) => {
@@ -97,8 +94,8 @@ export function StakingProvider({ children }: { children: React.ReactNode }) {
         ]);
 
         setData(stakingData);
-        setSolPrice(priceData.price);
-        setSolPriceChange(priceData.change24h);
+        setSolPrice(priceData.solana.usd);
+        setSolPriceChange(priceData.solana.usd_24h_change);
         setError(null);
         setLastUpdated(new Date());
 

@@ -766,37 +766,7 @@ export function NetworkStats() {
                             .map((_, i) => (
                               <Skeleton key={i} className="h-[80px]" />
                             ))
-                        : data.geographicDistribution
-                            .sort((a, b) => b.count - a.count)
-                            .slice(0, 5)
-                            .map((location, i) => (
-                              <Card key={i}>
-                                <CardContent className="p-4">
-                                  <div className="flex flex-col">
-                                    <div className="flex items-center">
-                                      <Globe className="h-4 w-4 mr-2 text-muted-foreground" />
-                                      <span className="font-medium">
-                                        {location.country}
-                                      </span>
-                                    </div>
-                                    <span className="text-xl font-bold mt-1">
-                                      {location.count}
-                                    </span>
-                                    <span className="text-xs text-muted-foreground">
-                                      {data.networkStats
-                                        ? formatPercentage(
-                                            (location.count /
-                                              data.networkStats
-                                                .totalValidators) *
-                                              100
-                                          )
-                                        : '0'}
-                                      % of validators
-                                    </span>
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            ))}
+                        : 'Coming Soon'}
                     </div>
                   </CardContent>
                 </Card>

@@ -1,6 +1,5 @@
 import {
   getAPYHistory,
-  getGeographicDistribution,
   getNetworkStats,
   getStakeDistribution,
   getValidators,
@@ -15,25 +14,18 @@ export async function GET() {
     const network = (await headersList).get('x-network') || 'mainnet-beta';
 
     // Fetch all required data in parallel
-    const [
-      networkStats,
-      validators,
-      geoDistribution,
-      stakeDistribution,
-      apyHistory,
-    ] = await Promise.all([
-      getNetworkStats(network as any),
-      getValidators(network as any),
-      getGeographicDistribution(network as any),
-      getStakeDistribution(network as any),
-      getAPYHistory(network as any),
-    ]);
+    const [networkStats, validators, stakeDistribution, apyHistory] =
+      await Promise.all([
+        getNetworkStats(network as any),
+        getValidators(network as any),
+        getStakeDistribution(network as any),
+        getAPYHistory(network as any),
+      ]);
 
     // Combine data into expected format
     const response = {
       networkStats,
       validators,
-      geographicDistribution: geoDistribution,
       stakeDistribution,
       apyHistory,
       validatorScore: validators.map((v) => ({

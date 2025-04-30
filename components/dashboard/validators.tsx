@@ -1,5 +1,6 @@
 'use client';
 
+import { useProfile } from '@/components/profile/profile-provider';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,6 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { useWallet } from '@/components/wallet/wallet-provider';
 import type { Validator } from '@/lib/types';
 import { formatNumber, formatPercentage } from '@/lib/utils';
 import {
@@ -29,6 +31,7 @@ import {
   ChevronDown,
   Filter,
   Search,
+  Star,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useStaking } from '../providers/staking-provider';
@@ -45,7 +48,10 @@ type SortKey =
 type SortDirection = 'asc' | 'desc';
 
 export function Validators() {
-  const { data, loading, error, refreshData } = useStaking();
+  const { data, error, refreshData } = useStaking();
+  const { addFavoriteValidator, removeFavoriteValidator, isValidatorFavorite } =
+    useProfile();
+  const { connected } = useWallet();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('stake');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -53,6 +59,20 @@ export function Validators() {
     null
   );
   const [showDelinquentOnly, setShowDelinquentOnly] = useState(false);
+
+  const handleFavoriteClick = (
+    validator: { identity: string; name: string },
+    e: React.MouseEvent
+  ) => {
+    e.stopPropagation();
+    if (!connected) return;
+
+    if (isValidatorFavorite(validator.identity)) {
+      removeFavoriteValidator(validator.identity);
+    } else {
+      addFavoriteValidator(validator);
+    }
+  };
 
   // Filter validators based on search query and other filters
   const filteredValidators = data.validators.filter((validator) => {
@@ -279,9 +299,34 @@ export function Validators() {
                     <TableRow
                       key={`${validator.identity}-${index}`} // Use identity + index as unique key
                       className={validator.delinquent ? 'bg-red-50/10' : ''}
+                      onClick={() => handleRowClick(validator)}
                     >
                       <TableCell>
                         <div className="flex items-center gap-2">
+                          {connected && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={(e) =>
+                                handleFavoriteClick(
+                                  {
+                                    identity: validator.identity,
+                                    name: validator.name,
+                                  },
+                                  e
+                                )
+                              }
+                            >
+                              <Star
+                                className={`h-4 w-4 ${
+                                  isValidatorFavorite(validator.identity)
+                                    ? 'fill-yellow-400 text-yellow-400'
+                                    : 'text-muted-foreground'
+                                }`}
+                              />
+                            </Button>
+                          )}
                           <div className="font-semibold">{validator.name}</div>
                           {validator.delinquent && (
                             <Badge variant="destructive">Delinquent</Badge>

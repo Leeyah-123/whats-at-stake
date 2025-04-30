@@ -1,17 +1,16 @@
 'use client';
 
-import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
 import Image from 'next/image';
 import { AlertSettings } from '../profile/alert-settings';
 import { FavoriteValidators } from '../profile/favorite-validators';
 import { ProfileSettings } from '../profile/profile-settings';
 import { useStaking } from '../providers/staking-provider';
 import { NetworkSelector } from '../wallet/network-selector';
-import { WalletConnectButton } from '../wallet/wallet-connect-button';
-import { WalletDetails } from '../wallet/wallet-details';
 import { useWallet } from '../wallet/wallet-provider';
 import { ApiStatusIndicator } from './api-status-indicator';
+import { MobileMenu } from './mobile-menu';
+import { WalletDetails } from '../wallet/wallet-details';
+import { WalletConnectButton } from '../wallet/wallet-connect-button';
 
 export function DashboardHeader() {
   const { connected } = useWallet();
@@ -52,15 +51,6 @@ export function DashboardHeader() {
       </div>
 
       <div className="hidden md:flex items-center gap-4 md:ml-auto md:gap-6">
-        <form className="relative">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search validators..."
-            className="w-56 rounded-lg bg-background pl-8 md:w-80"
-          />
-        </form>
-
         <ApiStatusIndicator />
         <NetworkSelector />
 
@@ -72,10 +62,12 @@ export function DashboardHeader() {
         )}
 
         <ProfileSettings />
+
+        {connected ? <WalletDetails /> : <WalletConnectButton />}
       </div>
 
-      <div className="flex items-center gap-2 ml-auto md:ml-0">
-        {connected ? <WalletDetails /> : <WalletConnectButton />}
+      <div className="hidden max-md:flex items-center gap-2 ml-auto md:ml-0">
+        <MobileMenu />
       </div>
     </header>
   );

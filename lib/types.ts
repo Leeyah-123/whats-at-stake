@@ -84,6 +84,5 @@ export interface StakingDataType {
   apyHistory: APYHistory[];
   stakeDistribution: StakeDistribution[];
   delinquentValidators: number;
-  geographicDistribution: GeographicDistribution[];
   validatorScore: ValidatorScore[];
 }

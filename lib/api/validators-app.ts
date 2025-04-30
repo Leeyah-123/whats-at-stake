@@ -385,56 +385,56 @@ export async function getNetworkStats(network: Cluster): Promise<NetworkStat> {
 /**
  * Get geographic distribution of validators
  */
-export async function getGeographicDistribution(
-  network: Cluster
-): Promise<GeographicDistribution[]> {
-  return getCachedOrFetch(`geo-distribution-${network}`, async () => {
-    const validators = await getValidators(network);
-    const distribution = new Map<
-      string,
-      {
-        country: string;
-        latitude: number;
-        longitude: number;
-        count: number;
-        stake: number;
-        delinquent: number;
-      }
-    >();
+// export async function getGeographicDistribution(
+//   network: Cluster
+// ): Promise<GeographicDistribution[]> {
+//   return getCachedOrFetch(`geo-distribution-${network}`, async () => {
+//     const validators = await getValidators(network);
+//     const distribution = new Map<
+//       string,
+//       {
+//         country: string;
+//         latitude: number;
+//         longitude: number;
+//         count: number;
+//         stake: number;
+//         delinquent: number;
+//       }
+//     >();
 
-    // Group validators by data center location
-    validators.forEach((validator) => {
-      const dcKey = validator.dataCenter.toLowerCase();
-      const location =
-        Object.entries(DATA_CENTER_LOCATIONS).find(([key]) =>
-          dcKey.includes(key)
-        )?.[1] || DATA_CENTER_LOCATIONS.unknown;
+//     // Group validators by data center location
+//     validators.forEach((validator) => {
+//       const dcKey = validator.dataCenter.toLowerCase();
+//       const location =
+//         Object.entries(DATA_CENTER_LOCATIONS).find(([key]) =>
+//           dcKey.includes(key)
+//         )?.[1] || DATA_CENTER_LOCATIONS.unknown;
 
-      const key = validator.dataCenter.toLowerCase();
-      const entry = distribution.get(key) || {
-        country: validator.dataCenter,
-        latitude: location.lat,
-        longitude: location.lng,
-        count: 0,
-        stake: 0,
-        delinquent: 0,
-      };
+//       const key = validator.dataCenter.toLowerCase();
+//       const entry = distribution.get(key) || {
+//         country: validator.dataCenter,
+//         latitude: location.lat,
+//         longitude: location.lng,
+//         count: 0,
+//         stake: 0,
+//         delinquent: 0,
+//       };
 
-      entry.count++;
-      entry.stake += validator.activatedStake;
-      if (validator.delinquent) entry.delinquent++;
+//       entry.count++;
+//       entry.stake += validator.activatedStake;
+//       if (validator.delinquent) entry.delinquent++;
 
-      distribution.set(key, entry);
-    });
+//       distribution.set(key, entry);
+//     });
 
-    return Array.from(distribution.values())
-      .map((entry) => ({
-        ...entry,
-        delinquent: entry.delinquent > 0,
-      }))
-      .filter((entry) => entry.latitude !== 0 && entry.longitude !== 0);
-  });
-}
+//     return Array.from(distribution.values())
+//       .map((entry) => ({
+//         ...entry,
+//         delinquent: entry.delinquent > 0,
+//       }))
+//       .filter((entry) => entry.latitude !== 0 && entry.longitude !== 0);
+//   });
+// }
 
 /**
  * Get delinquent validators count

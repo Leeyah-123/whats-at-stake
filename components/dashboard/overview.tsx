@@ -14,7 +14,6 @@ import { formatNumber, formatPercentage } from '@/lib/utils';
 import { TrendingDown, TrendingUp } from 'lucide-react';
 import { useStaking } from '../providers/staking-provider';
 import { APYChart } from './charts/apy-chart';
-import { GeographicDistributionMap } from './charts/geographic-distribution';
 import { StakeDistributionChart } from './charts/stake-distribution-chart';
 import { ValidatorScoresChart } from './charts/validator-scores-chart';
 import { DataRefreshIndicator } from './data-refresh-indicator';
@@ -309,33 +308,6 @@ export function Overview() {
               />
             ) : (
               <ValidatorScoresChart data={data.validatorScore} />
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="lg:col-span-7">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <div>
-            <CardTitle>Geographic Distribution</CardTitle>
-            <CardDescription>
-              Validator locations around the world
-            </CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-2">
-          <div className="h-[400px]">
-            {loading ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
-              </div>
-            ) : error ? (
-              <ErrorAlert
-                message="Failed to load geographic distribution data"
-                onRetry={() => refreshData()}
-              />
-            ) : (
-              <GeographicDistributionMap data={data.geographicDistribution} />
             )}
           </div>
         </CardContent>
