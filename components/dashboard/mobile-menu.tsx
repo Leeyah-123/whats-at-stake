@@ -8,18 +8,16 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import { UserButton, useUser } from '@civic/auth/react';
 import { Menu } from 'lucide-react';
 import { AlertSettings } from '../profile/alert-settings';
 import { FavoriteValidators } from '../profile/favorite-validators';
 import { ProfileSettings } from '../profile/profile-settings';
 import { NetworkSelector } from '../wallet/network-selector';
-import { WalletConnectButton } from '../wallet/wallet-connect-button';
-import { WalletDetails } from '../wallet/wallet-details';
-import { useWallet } from '../wallet/wallet-provider';
 import { ApiStatusIndicator } from './api-status-indicator';
 
 export function MobileMenu() {
-  const { connected } = useWallet();
+  const { authStatus } = useUser();
 
   return (
     <Sheet>
@@ -35,14 +33,14 @@ export function MobileMenu() {
         <div className="flex flex-col gap-4 mt-4">
           <ApiStatusIndicator />
           <NetworkSelector />
-          {connected && (
+          {authStatus === 'authenticated' && (
             <>
               <AlertSettings />
               <FavoriteValidators />
             </>
           )}
           <ProfileSettings />
-          {connected ? <WalletDetails /> : <WalletConnectButton />}
+          <UserButton />
         </div>
       </SheetContent>
     </Sheet>

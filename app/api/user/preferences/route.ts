@@ -1,27 +1,40 @@
-import { authOptions } from '@/lib/auth/config';
 import dbConnect from '@/lib/db/connect';
 import { User } from '@/lib/db/models/user';
-import { getServerSession } from 'next-auth';
+import { createWallets, getUser } from '@civic/auth-web3/nextjs';
 import { NextResponse } from 'next/server';
+
+const WALLET_API_BASE_URL =
+  process.env.WALLET_API_BASE_URL || 'https://api.civic.com/wallet';
+
+function userHasWallet(user: any) {
+  return !!user.solWalletAddress;
+}
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.walletAddress) {
+    const user = await getUser({
+      endpoints: { wallet: WALLET_API_BASE_URL },
+    });
+
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!userHasWallet(user)) {
+      await createWallets();
     }
 
     await dbConnect();
 
-    const user = await User.findOne({
-      walletAddress: session.user.walletAddress,
+    const dbUser = await User.findOne({
+      walletAddress: user.solWalletAddress,
     });
 
-    if (!user) {
+    if (!dbUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    return NextResponse.json(user);
+    return NextResponse.json(dbUser);
   } catch (error) {
     console.error('API Error:', error);
     return NextResponse.json(
@@ -33,16 +46,23 @@ export async function GET() {
 
 export async function PATCH(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.walletAddress) {
+    const user = await getUser({
+      endpoints: { wallet: WALLET_API_BASE_URL },
+    });
+
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!userHasWallet(user)) {
+      await createWallets();
     }
 
     const updates = await req.json();
     await dbConnect();
 
-    const user = await User.findOneAndUpdate(
-      { walletAddress: session.user.walletAddress },
+    const dbUser = await User.findOneAndUpdate(
+      { walletAddress: user.solWalletAddress },
       {
         ...updates,
         updatedAt: new Date(),
@@ -50,7 +70,7 @@ export async function PATCH(req: Request) {
       { new: true, upsert: true }
     );
 
-    return NextResponse.json(user);
+    return NextResponse.json(dbUser);
   } catch (error) {
     console.error('API Error:', error);
     return NextResponse.json(

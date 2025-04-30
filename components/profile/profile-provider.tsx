@@ -1,6 +1,7 @@
 'use client';
 
 import { LoadingScreen } from '@/components/loading-screen';
+import { useUser } from '@civic/auth/react';
 import {
   createContext,
   useContext,
@@ -8,7 +9,6 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { useWallet } from '../wallet/wallet-provider';
 
 export type AlertSetting = {
   id: string;
@@ -56,14 +56,15 @@ const defaultProfile: UserProfile = {
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
-  const { publicKey } = useWallet();
+  const { authStatus } = useUser();
+  const isAuthenticated = authStatus === 'authenticated';
   const [profile, setProfile] = useState<UserProfile>(defaultProfile);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Load user preferences from MongoDB when authenticated
   useEffect(() => {
-    if (!publicKey) {
+    if (!isAuthenticated) {
       setProfile(defaultProfile);
       setLoading(false);
       return;
@@ -88,11 +89,11 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     };
 
     loadPreferences();
-  }, [publicKey]);
+  }, [isAuthenticated]);
 
   // Update preferences in MongoDB
   const updateProfile = async (updates: Partial<UserProfile>) => {
-    if (!publicKey) {
+    if (!isAuthenticated) {
       setProfile((prev) => ({ ...prev, ...updates }));
       return;
     }

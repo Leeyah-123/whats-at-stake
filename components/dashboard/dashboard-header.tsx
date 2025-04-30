@@ -1,27 +1,26 @@
 'use client';
 
+import { UserButton, useUser } from '@civic/auth/react';
 import Image from 'next/image';
 import { AlertSettings } from '../profile/alert-settings';
 import { FavoriteValidators } from '../profile/favorite-validators';
 import { ProfileSettings } from '../profile/profile-settings';
 import { useStaking } from '../providers/staking-provider';
 import { NetworkSelector } from '../wallet/network-selector';
-import { useWallet } from '../wallet/wallet-provider';
 import { ApiStatusIndicator } from './api-status-indicator';
 import { MobileMenu } from './mobile-menu';
-import { WalletDetails } from '../wallet/wallet-details';
-import { WalletConnectButton } from '../wallet/wallet-connect-button';
 
 export function DashboardHeader() {
-  const { connected } = useWallet();
   const { solPrice, solPriceChange } = useStaking();
+  const { authStatus } = useUser();
+  const isAuthenticated = authStatus === 'authenticated';
 
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-background px-4 md:px-6">
       <div className="flex items-center gap-2 md:gap-4">
         <Image
-          src="/placeholder.svg?height=32&width=32"
-          alt="Solana Logo"
+          src="/whats-at-stake-logo.png"
+          alt="What's At Stake Logo"
           width={32}
           height={32}
           className="rounded-full"
@@ -54,7 +53,7 @@ export function DashboardHeader() {
         <ApiStatusIndicator />
         <NetworkSelector />
 
-        {connected && (
+        {isAuthenticated && (
           <>
             <AlertSettings />
             <FavoriteValidators />
@@ -62,8 +61,7 @@ export function DashboardHeader() {
         )}
 
         <ProfileSettings />
-
-        {connected ? <WalletDetails /> : <WalletConnectButton />}
+        <UserButton className="hover:bg-slate-800" />
       </div>
 
       <div className="hidden max-md:flex items-center gap-2 ml-auto md:ml-0">

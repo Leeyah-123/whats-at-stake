@@ -36,6 +36,7 @@ import { useState } from 'react';
 import { useStaking } from '../providers/staking-provider';
 import { ErrorAlert } from './error-alert';
 import { ValidatorDetailsCard } from './validator-details-card';
+import { useUser } from '@civic/auth/react';
 
 type SortKey =
   | 'name'
@@ -48,7 +49,8 @@ type SortDirection = 'asc' | 'desc';
 
 export function Validators() {
   const { data, error, refreshData } = useStaking();
-  const { connected } = useWallet();
+  const { authStatus } = useUser();
+  const isAuthenticated = authStatus === 'authenticated';
   const { addFavoriteValidator, removeFavoriteValidator, isValidatorFavorite } =
     useProfile();
   const [searchQuery, setSearchQuery] = useState('');
@@ -61,7 +63,7 @@ export function Validators() {
 
   const handleFavoriteClick = (validator: Validator, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!connected) return;
+    if (!isAuthenticated) return;
 
     if (isValidatorFavorite(validator.identity)) {
       removeFavoriteValidator(validator.identity);
@@ -273,7 +275,7 @@ export function Validators() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          {connected && (
+                          {isAuthenticated && (
                             <Button
                               variant="ghost"
                               size="icon"

@@ -11,6 +11,9 @@ importers:
       '@civic/auth':
         specifier: ^0.5.1
         version: 0.5.1(@types/react@19.1.2)(next@15.2.4(@babel/core@7.26.10)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react@19.1.0)
+      '@civic/auth-web3':
+        specifier: ^0.5.5
+        version: 0.5.5(@solana/wallet-adapter-react@0.15.38(@solana/web3.js@1.98.2(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(bs58@6.0.0)(react-native@0.79.1(@babel/core@7.26.10)(@types/react@19.1.2)(bufferutil@4.0.9)(react@19.1.0)(utf-8-validate@5.0.10))(react@19.1.0))(@types/react@19.1.2)(bufferutil@4.0.9)(next@15.2.4(@babel/core@7.26.10)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react@19.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.24.3)
       '@hookform/resolvers':
         specifier: ^3.9.1
         version: 3.10.0(react-hook-form@7.56.1(react@19.1.0))
@@ -385,6 +388,24 @@ packages:
   '@babel/types@7.27.0':
     resolution: {integrity: sha512-H45s8fVLYjbhFH62dIJ3WtmJ6RSPt/3DRO0ZcT2SUiYiQyz3BLVb9ADEnLl91m74aQPS3AzzeajZHYOalWe3bg==}
     engines: {node: '>=6.9.0'}
+
+  '@civic/auth-web3@0.5.5':
+    resolution: {integrity: sha512-Rz/wcQK91ho7iKjeKlRtnxW7ylL8PwOSb1qfJoCm3PZ3Bu3S8Mp8cLCKRMGw0bRaOae3JIHkkmz0Aauqptskxw==}
+    peerDependencies:
+      '@solana/wallet-adapter-react': ^0.15.35
+      '@tanstack/react-query': ^5.56.2
+      next: '>=14'
+      react: '>=18'
+      wagmi: ^2.12.29
+    peerDependenciesMeta:
+      '@solana/wallet-adapter-react':
+        optional: true
+      '@tanstack/react-query':
+        optional: true
+      next:
+        optional: true
+      wagmi:
+        optional: true
 
   '@civic/auth@0.5.1':
     resolution: {integrity: sha512-pzN0TWdaho3Eh8PWfpS6nSD0lFDk+NAlWJaMjOPu2W/bpUAqWA2hw4LCn+mVaJLOyvBemMLpWPt3CWwSQxWlgg==}
@@ -4222,6 +4243,9 @@ packages:
     resolution: {integrity: sha512-8q7VEgMJW4J8tcfVPy8g09NcQwZdbwFEqhe/WZkoIzjn/3TGDwtOCYtXGxA3O8tPzpczCCDgv+P2P5y00ZJOOg==}
     engines: {node: '>= 8'}
 
+  metakeep@2.2.8:
+    resolution: {integrity: sha512-gZWQfBT+woqm9Tiz+JF0uVyOnGC7eTv6ECBzow7h1C1DaNjUHEdsD/FH/DrEfGNMHBoXdX0Bv1yVx9jPJ8erfw==}
+
   metro-babel-transformer@0.82.1:
     resolution: {integrity: sha512-SuDMRdJKafSj9mzIijCNRxVXWrlJZdTnVE9iTGHO85UFTp/mWOLftqCjEtEjc78/0Wq3Y8IoYayx/VkYmKUf/g==}
     engines: {node: '>=18.18'}
@@ -5979,6 +6003,35 @@ snapshots:
     dependencies:
       '@babel/helper-string-parser': 7.25.9
       '@babel/helper-validator-identifier': 7.25.9
+
+  '@civic/auth-web3@0.5.5(@solana/wallet-adapter-react@0.15.38(@solana/web3.js@1.98.2(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(bs58@6.0.0)(react-native@0.79.1(@babel/core@7.26.10)(@types/react@19.1.2)(bufferutil@4.0.9)(react@19.1.0)(utf-8-validate@5.0.10))(react@19.1.0))(@types/react@19.1.2)(bufferutil@4.0.9)(next@15.2.4(@babel/core@7.26.10)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react@19.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.24.3)':
+    dependencies:
+      '@civic/auth': 0.5.1(@types/react@19.1.2)(next@15.2.4(@babel/core@7.26.10)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react@19.1.0)
+      '@noble/hashes': 1.8.0
+      '@solana/wallet-adapter-base': 0.9.26(@solana/web3.js@1.98.2(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))
+      '@solana/wallet-standard-features': 1.3.0
+      '@solana/web3.js': 1.98.2(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)
+      '@wallet-standard/base': 1.1.0
+      '@wallet-standard/features': 1.1.0
+      bs58: 6.0.0
+      eventemitter3: 5.0.1
+      events: 3.3.0
+      jwt-decode: 4.0.0
+      metakeep: 2.2.8
+      react: 19.1.0
+      tslib: 2.8.1
+      viem: 2.28.0(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.24.3)
+    optionalDependencies:
+      '@solana/wallet-adapter-react': 0.15.38(@solana/web3.js@1.98.2(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(bs58@6.0.0)(react-native@0.79.1(@babel/core@7.26.10)(@types/react@19.1.2)(bufferutil@4.0.9)(react@19.1.0)(utf-8-validate@5.0.10))(react@19.1.0)
+      next: 15.2.4(@babel/core@7.26.10)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+    transitivePeerDependencies:
+      - '@types/react'
+      - bufferutil
+      - encoding
+      - supports-color
+      - typescript
+      - utf-8-validate
+      - zod
 
   '@civic/auth@0.5.1(@types/react@19.1.2)(next@15.2.4(@babel/core@7.26.10)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react@19.1.0)':
     dependencies:
@@ -11139,6 +11192,8 @@ snapshots:
   merge-stream@2.0.0: {}
 
   merge2@1.4.1: {}
+
+  metakeep@2.2.8: {}
 
   metro-babel-transformer@0.82.1:
     dependencies:

@@ -1,3 +1,5 @@
+import { createCivicAuthPlugin } from '@civic/auth-web3/nextjs';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {
@@ -11,4 +13,8 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+const withCivicAuth = createCivicAuthPlugin({
+  clientId: process.env.CIVIC_AUTH_CLIENT_ID,
+});
+
+export default withCivicAuth(nextConfig);
