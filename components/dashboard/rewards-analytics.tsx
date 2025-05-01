@@ -20,7 +20,7 @@ export function RewardsAnalytics() {
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-      <Card className="lg:col-span-7">
+      <Card className="max-w-full overflow-x-auto lg:col-span-7">
         <CardHeader className="pb-3">
           <CardTitle className="text-xl">Staking Rewards Analytics</CardTitle>
         </CardHeader>
@@ -105,55 +105,63 @@ export function RewardsAnalytics() {
         </CardContent>
       </Card>
 
-      <Card className="lg:col-span-4">
+      <Card className="max-w-full overflow-x-auto lg:col-span-4">
         <CardHeader className="pb-3">
           <CardTitle>Rewards Over Time</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[350px]">
+          <div className="max-w-full h-[350px] overflow-x-auto">
             <RewardsOverTimeChart data={data.apyHistory} />
           </div>
         </CardContent>
       </Card>
 
-      <Card className="lg:col-span-3">
+      <Card className="max-w-full overflow-x-auto lg:col-span-3">
         <CardHeader className="pb-3">
           <CardTitle>Validator APY Distribution</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[350px]">
+          <div className="max-w-full h-[350px] overflow-x-auto">
             <RewardsDistributionChart />
           </div>
         </CardContent>
       </Card>
 
-      <Card className="lg:col-span-7">
+      <Card className="max-w-full overflow-x-auto lg:col-span-7">
         <CardHeader className="pb-3">
           <CardTitle>Validator Rewards Comparison</CardTitle>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="top-validators">
-            <TabsList className="grid grid-cols-3 mb-4 w-[400px]">
-              <TabsTrigger value="top-validators">Top Validators</TabsTrigger>
-              <TabsTrigger value="by-commission">By Commission</TabsTrigger>
-              <TabsTrigger value="by-size">By Size</TabsTrigger>
-            </TabsList>
-            <TabsContent value="top-validators" className="space-y-4">
-              <div className="h-[400px]">
-                <RewardsComparisonChart />
-              </div>
-            </TabsContent>
-            <TabsContent value="by-commission" className="space-y-4">
-              <div className="h-[400px]">
-                <RewardsComparisonChart compareBy="commission" />
-              </div>
-            </TabsContent>
-            <TabsContent value="by-size" className="space-y-4">
-              <div className="h-[400px]">
-                <RewardsComparisonChart compareBy="size" />
-              </div>
-            </TabsContent>
-          </Tabs>
+          <div className="w-full overflow-x-auto">
+            <Tabs
+              defaultValue="top-validators"
+              className="min-w-[340px] md:min-w-0"
+            >
+              <TabsList
+                className="flex flex-row md:grid md:grid-cols-3 mb-4 w-max md:w-[400px] gap-2 md:gap-0"
+                style={{ minWidth: 340 }}
+              >
+                <TabsTrigger value="top-validators">Top Validators</TabsTrigger>
+                <TabsTrigger value="by-commission">By Commission</TabsTrigger>
+                <TabsTrigger value="by-size">By Size</TabsTrigger>
+              </TabsList>
+              <TabsContent value="top-validators" className="space-y-4">
+                <div className="h-[400px]">
+                  <RewardsComparisonChart />
+                </div>
+              </TabsContent>
+              <TabsContent value="by-commission" className="space-y-4">
+                <div className="h-[400px]">
+                  <RewardsComparisonChart compareBy="commission" />
+                </div>
+              </TabsContent>
+              <TabsContent value="by-size" className="space-y-4">
+                <div className="h-[400px]">
+                  <RewardsComparisonChart compareBy="size" />
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
         </CardContent>
       </Card>
     </div>

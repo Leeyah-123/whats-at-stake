@@ -465,13 +465,13 @@ export function NetworkStats() {
         </CardContent>
       </Card>
 
-      <Card className="lg:col-span-7">
+      <Card className="max-w-full lg:col-span-7">
         <CardHeader className="pb-3">
           <CardTitle>Network Analytics</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="max-w-full">
           <Tabs defaultValue="validator-growth" className="space-y-4">
-            <TabsList className="grid grid-cols-4 mb-4">
+            <TabsList className="max-w-full grid max-md:grid-cols-2 h-fit grid-cols-4 mb-4">
               <TabsTrigger value="validator-growth">
                 Validator Growth
               </TabsTrigger>
