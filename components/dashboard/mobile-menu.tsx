@@ -40,7 +40,7 @@ export function MobileMenu() {
             </>
           )}
           <ProfileSettings />
-          <UserButton />
+          <UserButton className="w-full" />
         </div>
       </SheetContent>
     </Sheet>
